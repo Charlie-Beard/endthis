@@ -146,7 +146,7 @@ async function initHostView(db, roomId, hostToken, uid) {
   showView('host-view');
 
   const pUrl = participantUrl(roomId);
-  document.getElementById('room-badge').textContent      = roomId;
+  document.getElementById('room-badge').textContent      = `Meeting ID: ${roomId}`;
   document.getElementById('share-link-full').textContent = pUrl;
   document.getElementById('share-link-mini').textContent = pUrl;
 
