@@ -1,0 +1,24 @@
+title: EndThis
+description: "Give your team a voice, without raising theirs."
+url: "https://endthis.online"
+baseurl: ""
+
+# jekyll-sitemap uses this to build absolute URLs
+author:
+  name: EndThis
+
+# Plugins (also declared in Gemfile :jekyll_plugins group)
+plugins:
+  - jekyll-sitemap
+
+# Don't deploy these to _site/
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - generate-assets.html
+  - README.md
+  - CLAUDE.md
+  - "*.swp"
+  - "*.swo"
+  - vendor/
+  - .claude/

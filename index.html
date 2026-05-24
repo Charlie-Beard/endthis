@@ -1,23 +1,157 @@
+---
+last_modified_at: 2026-05-24
+---
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EndThis</title>
-  <meta name="description" content="EndThis - A simple web application">
-  <meta name="og:title" content="EndThis">
-  <meta name="og:description" content="EndThis - A simple web application">
-  <meta name="og:type" content="website">
-  <meta name="og:image" content="/og-image.png">
-  <meta name="theme-color" content="#ffffff">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+  <title>EndThis — Anonymous meeting end-vote</title>
+  <meta name="description" content="Give your team a voice without raising theirs. One click, totally anonymous. Share a link — participants vote when they're ready to wrap up.">
+
+  <!-- SEO -->
+  <link rel="canonical" href="https://endthis.online/">
+
+  <!-- Open Graph -->
+  <meta property="og:type"        content="website">
+  <meta property="og:url"         content="https://endthis.online/">
+  <meta property="og:title"       content="EndThis — Let your team vote to end the meeting">
+  <meta property="og:description" content="Share a link. Your participants vote anonymously. You see when it's time to wrap up.">
+  <meta property="og:image"       content="https://endthis.online/og-image.png">
+  <meta property="og:image:width"  content="1200">
+  <meta property="og:image:height" content="630">
+
+  <!-- Twitter card -->
+  <meta name="twitter:card"        content="summary_large_image">
+  <meta name="twitter:title"       content="EndThis — Let your team vote to end the meeting">
+  <meta name="twitter:description" content="Share a link. Your participants vote anonymously. You see when it's time to wrap up.">
+  <meta name="twitter:image"       content="https://endthis.online/og-image.png">
+
+  <!-- Theme -->
+  <meta name="theme-color" content="#FAF9F7">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" href="favicon-32.png" sizes="32x32">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+  <!-- CSP: gstatic for Firebase SDK; firebaseio + googleapis for realtime DB + auth -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://*.firebaseio.com wss://*.firebaseio.com https://*.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com;">
+
+  <!-- Preconnect to Firebase CDN and auth endpoints to reduce latency on first load -->
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+  <link rel="dns-prefetch" href="https://firebaseio.com">
+
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main id="app">
-    <h1>EndThis</h1>
-    <p>Welcome to EndThis</p>
-  </main>
-  <script src="script.js"></script>
+
+  <!-- Loading -->
+  <div id="loading-view" class="view active">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- Landing -->
+  <div id="landing-view" class="view">
+    <div class="container">
+      <div class="landing-wordmark">
+        <span class="wordmark">EndThis</span>
+      </div>
+      <h1 class="landing-tagline">Give your team a voice, without raising theirs.</h1>
+      <p class="landing-sub">Share a link. Participants vote anonymously. You see when it's time to wrap up.</p>
+      <button class="btn btn-primary landing-cta" id="start-meeting-btn">Start a meeting</button>
+      <div class="steps">
+        <div class="step">
+          <span class="step-num">1</span>
+          <span class="step-text"><strong>Create</strong> a room — takes one click.</span>
+        </div>
+        <div class="step">
+          <span class="step-num">2</span>
+          <span class="step-text"><strong>Share</strong> the link in your meeting chat.</span>
+        </div>
+        <div class="step">
+          <span class="step-num">3</span>
+          <span class="step-text"><strong>Watch</strong> as participants vote anonymously.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Host view -->
+  <div id="host-view" class="view">
+    <div class="container">
+      <div class="host-top-bar">
+        <span class="wordmark">EndThis</span>
+        <span class="room-badge" id="room-badge"></span>
+      </div>
+
+      <div class="host-content">
+
+        <!-- Share card: big in share phase, mini row after copy -->
+        <div class="share-card">
+          <div class="share-card-body">
+            <h2>Share this link with your team</h2>
+            <p>Paste it into your meeting chat. Votes are anonymous.</p>
+            <div class="link-display" id="share-link-full"></div>
+            <button class="btn btn-primary copy-btn-main" id="copy-btn-main">Copy link</button>
+          </div>
+          <div class="share-card-mini">
+            <div class="link-display" id="share-link-mini"></div>
+            <button class="btn btn-ghost" id="copy-btn-mini">Copy again</button>
+          </div>
+        </div>
+
+        <!-- Counter section: dimmed until share is clicked, then dominant -->
+        <div class="counter-section" id="counter-section">
+          <div class="counter-waiting" id="counter-waiting">Waiting for participants…</div>
+          <div class="counter-live" id="counter-live">
+            <div class="counter-numbers">
+              <span id="vote-count">0</span><span class="of-total"> of <span id="participant-count">0</span></span>
+            </div>
+            <div class="counter-descriptor">want to end this meeting</div>
+            <div class="progress-track">
+              <div class="progress-fill" id="progress-fill"></div>
+            </div>
+          </div>
+          <div class="threshold-alert" id="threshold-alert">
+            More than half your participants want to wrap up.
+          </div>
+        </div>
+
+      </div>
+
+      <div class="host-footer">
+        <button class="btn btn-ghost" id="close-session-btn">Close session</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Participant view -->
+  <div id="participant-view" class="view">
+    <div class="container">
+      <div class="participant-top">
+        <span class="wordmark">EndThis</span>
+        <p class="participant-note">Anonymous — your organizer sees the count, not who voted.</p>
+      </div>
+      <div class="vote-card">
+        <h2 class="vote-card-question">Ready to end this meeting?</h2>
+        <p class="vote-card-sub">Your vote is completely anonymous.</p>
+        <button class="btn btn-primary vote-btn" id="vote-btn">I want to end this meeting</button>
+        <div class="vote-confirm" id="vote-confirm">Your vote is counted.</div>
+        <div class="others-voted" id="others-voted"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ended / not found -->
+  <div id="ended-view" class="view">
+    <div class="container">
+      <div class="ended-icon">✓</div>
+      <h2 id="ended-title">This meeting has ended</h2>
+      <p id="ended-sub">The organizer has closed this session.</p>
+      <a href="./" class="btn btn-outline" style="margin-top:1.5rem">Start a new meeting</a>
+    </div>
+  </div>
+
+  <script type="module" src="script.js"></script>
 </body>
 </html>
