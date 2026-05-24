@@ -17,8 +17,8 @@ const FIREBASE_CONFIG = {
 //
 //  {
 //    "rules": {
-//      "rooms": {
-//        "$roomId": {
+//      "meetings": {
+//        "$meetingId": {
 //          ".read": true,
 //          ".write": "auth != null && !data.exists()",
 //          "ended": {
@@ -43,8 +43,8 @@ import { getDatabase, ref, set, get, onValue, remove, onDisconnect as fbOnDiscon
   from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js';
 
 const VOTE_THRESHOLD  = 0.5;
-const ROOM_ID_CHARS   = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no look-alike chars
-const ROOM_ID_LEN     = 6;
+const MEETING_ID_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no look-alike chars
+const MEETING_ID_LEN   = 6;
 const TOKEN_CHARS     = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 const TOKEN_LEN       = 20;
 
@@ -62,17 +62,17 @@ async function sha256hex(str) {
 }
 
 function parseParams() {
-  const p      = new URLSearchParams(location.search);
-  const roomId = p.get('room');
-  const VALID  = /^[A-Z2-9]{6}$/;
+  const p         = new URLSearchParams(location.search);
+  const meetingId = p.get('meeting');
+  const VALID     = /^[A-Z2-9]{6}$/;
   return {
-    roomId:    roomId && VALID.test(roomId) ? roomId : null,
+    meetingId: meetingId && VALID.test(meetingId) ? meetingId : null,
     hostToken: p.get('h'),
   };
 }
 
-function participantUrl(roomId) {
-  return `${location.origin}${location.pathname}?room=${roomId}`;
+function participantUrl(meetingId) {
+  return `${location.origin}${location.pathname}?meeting=${meetingId}`;
 }
 
 // ── View management ──────────────────────────────────────────────────────────
@@ -112,17 +112,17 @@ function initLanding(db) {
     btn.disabled = true;
     btn.textContent = 'Creating…';
 
-    const roomId        = randomStr(ROOM_ID_CHARS, ROOM_ID_LEN);
+    const meetingId     = randomStr(MEETING_ID_CHARS, MEETING_ID_LEN);
     const hostToken     = randomStr(TOKEN_CHARS, TOKEN_LEN);
     const hostTokenHash = await sha256hex(hostToken);
 
     try {
-      await set(ref(db, `rooms/${roomId}`), {
+      await set(ref(db, `meetings/${meetingId}`), {
         created: Date.now(),
         host:    hostTokenHash,
         ended:   false,
       });
-      location.href = `${location.pathname}?room=${roomId}&h=${hostToken}`;
+      location.href = `${location.pathname}?meeting=${meetingId}&h=${hostToken}`;
     } catch {
       btn.disabled = false;
       btn.textContent = 'Start a meeting';
@@ -132,21 +132,21 @@ function initLanding(db) {
 
 // ── Host view ────────────────────────────────────────────────────────────────
 
-async function initHostView(db, roomId, hostToken, uid) {
+async function initHostView(db, meetingId, hostToken, uid) {
   // Verify host token: compare SHA-256(urlToken) against stored hash
   const [hostSnap, tokenHash] = await Promise.all([
-    get(ref(db, `rooms/${roomId}/host`)),
+    get(ref(db, `meetings/${meetingId}/host`)),
     sha256hex(hostToken),
   ]);
   if (!hostSnap.exists() || hostSnap.val() !== tokenHash) {
-    initParticipantView(db, roomId, uid);
+    initParticipantView(db, meetingId, uid);
     return;
   }
 
   showView('host-view');
 
-  const pUrl = participantUrl(roomId);
-  document.getElementById('room-badge').textContent      = `Meeting ID: ${roomId}`;
+  const pUrl = participantUrl(meetingId);
+  document.getElementById('meeting-badge').textContent    = `Meeting ID: ${meetingId}`;
   document.getElementById('share-link-full').textContent = pUrl;
   document.getElementById('share-link-mini').textContent = pUrl;
 
@@ -168,12 +168,12 @@ async function initHostView(db, roomId, hostToken, uid) {
 
   document.getElementById('close-session-btn').addEventListener('click', () => {
     if (confirm('Close this session? Participants will see the meeting has ended.')) {
-      set(ref(db, `rooms/${roomId}/ended`), true);
+      set(ref(db, `meetings/${meetingId}/ended`), true);
     }
   });
 
   // Watch for the session being closed
-  onValue(ref(db, `rooms/${roomId}/ended`), snap => {
+  onValue(ref(db, `meetings/${meetingId}/ended`), snap => {
     if (snap.val() === true) {
       showEnded('Session closed', 'You have closed this meeting session.');
     }
@@ -208,12 +208,12 @@ async function initHostView(db, roomId, hostToken, uid) {
     alert.classList.toggle('visible', voteCount / presenceCount >= VOTE_THRESHOLD);
   }
 
-  onValue(ref(db, `rooms/${roomId}/presence`), snap => {
+  onValue(ref(db, `meetings/${meetingId}/presence`), snap => {
     presenceCount = snap.exists() ? Object.keys(snap.val()).length : 0;
     renderCounter();
   });
 
-  onValue(ref(db, `rooms/${roomId}/votes`), snap => {
+  onValue(ref(db, `meetings/${meetingId}/votes`), snap => {
     voteCount = snap.exists() ? Object.keys(snap.val()).length : 0;
     renderCounter();
   });
@@ -221,24 +221,24 @@ async function initHostView(db, roomId, hostToken, uid) {
 
 // ── Participant view ──────────────────────────────────────────────────────────
 
-async function initParticipantView(db, roomId, uid) {
-  const roomSnap = await get(ref(db, `rooms/${roomId}`));
+async function initParticipantView(db, meetingId, uid) {
+  const meetingSnap = await get(ref(db, `meetings/${meetingId}`));
 
-  if (!roomSnap.exists() || roomSnap.val().ended === true) {
+  if (!meetingSnap.exists() || meetingSnap.val().ended === true) {
     showEnded('This meeting has ended', 'The organizer has closed this session.');
     return;
   }
 
   showView('participant-view');
 
-  const presenceRef = ref(db, `rooms/${roomId}/presence/${uid}`);
-  const voteRef     = ref(db, `rooms/${roomId}/votes/${uid}`);
+  const presenceRef = ref(db, `meetings/${meetingId}/presence/${uid}`);
+  const voteRef     = ref(db, `meetings/${meetingId}/votes/${uid}`);
 
   // Register presence; auto-remove when tab closes
   await set(presenceRef, true);
   fbOnDisconnect(presenceRef).remove();
 
-  onValue(ref(db, `rooms/${roomId}/ended`), snap => {
+  onValue(ref(db, `meetings/${meetingId}/ended`), snap => {
     if (snap.val() === true) {
       remove(presenceRef);
       showEnded('This meeting has ended', 'The organizer has wrapped up the session.');
@@ -266,7 +266,7 @@ async function initParticipantView(db, roomId, uid) {
   });
 
   // Show "X others feel the same" (only when ≥1 other has voted)
-  onValue(ref(db, `rooms/${roomId}/votes`), snap => {
+  onValue(ref(db, `meetings/${meetingId}/votes`), snap => {
     const allVotes    = snap.exists() ? Object.keys(snap.val()) : [];
     const othersCount = allVotes.filter(id => id !== uid).length;
     if (othersCount >= 1) {
@@ -308,13 +308,13 @@ function boot() {
   const unsubscribe = onAuthStateChanged(auth, user => {
     if (user) {
       unsubscribe();
-      const { roomId, hostToken } = parseParams();
-      if (!roomId) {
+      const { meetingId, hostToken } = parseParams();
+      if (!meetingId) {
         initLanding(db);
       } else if (hostToken) {
-        initHostView(db, roomId, hostToken, user.uid);
+        initHostView(db, meetingId, hostToken, user.uid);
       } else {
-        initParticipantView(db, roomId, user.uid);
+        initParticipantView(db, meetingId, user.uid);
       }
     }
   });

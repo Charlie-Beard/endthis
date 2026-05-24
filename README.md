@@ -10,9 +10,9 @@ Live at **[endthis.online](https://endthis.online)**
 
 | Who | URL | What they see |
 |-----|-----|---------------|
-| Organizer | `endthis.online` | Creates a room, gets a host link |
-| Organizer | `/?room=X&h=TOKEN` | Live counter, share link, threshold alert |
-| Participant | `/?room=X` | Single vote button, anonymous |
+| Organizer | `endthis.online` | Creates a meeting, gets a host link |
+| Organizer | `/?meeting=X&h=TOKEN` | Live counter, share link, threshold alert |
+| Participant | `/?meeting=X` | Single vote button, anonymous |
 
 Votes are anonymous — the organizer only sees the count, never who voted. Participants see "X others feel the same" once at least one other person has voted.
 
@@ -37,8 +37,8 @@ Votes are anonymous — the organizer only sees the count, never who voted. Part
 ```json
 {
   "rules": {
-    "rooms": {
-      "$roomId": {
+    "meetings": {
+      "$meetingId": {
         ".read": true,
         ".write": "auth != null && !data.exists()",
         "ended": { ".write": "auth != null" },
