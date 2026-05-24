@@ -428,6 +428,8 @@ body {
 
 /* ── Responsive ───────────────────────────────────────────────────────── */
 
+.btn-mt { margin-top: 1.5rem; }
+
 @media (max-width: 480px) {
   .landing-tagline { font-size: 1.625rem; }
   .counter-numbers { font-size: 3rem; }

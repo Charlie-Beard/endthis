@@ -17,7 +17,7 @@ last_modified_at: 2026-05-24
   <meta property="og:url"         content="https://endthis.online/">
   <meta property="og:title"       content="EndThis — Let your team vote to end the meeting">
   <meta property="og:description" content="Share a link. Your participants vote anonymously. You see when it's time to wrap up.">
-  <meta property="og:image"       content="https://endthis.online/og-image.png">
+  <meta property="og:image"       content="https://endthis.online/og-image.webp">
   <meta property="og:image:width"  content="1200">
   <meta property="og:image:height" content="630">
 
@@ -25,7 +25,7 @@ last_modified_at: 2026-05-24
   <meta name="twitter:card"        content="summary_large_image">
   <meta name="twitter:title"       content="EndThis — Let your team vote to end the meeting">
   <meta name="twitter:description" content="Share a link. Your participants vote anonymously. You see when it's time to wrap up.">
-  <meta name="twitter:image"       content="https://endthis.online/og-image.png">
+  <meta name="twitter:image"       content="https://endthis.online/og-image.webp">
 
   <!-- Theme -->
   <meta name="theme-color" content="#FAF9F7">
@@ -34,12 +34,12 @@ last_modified_at: 2026-05-24
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
   <!-- CSP: gstatic for Firebase SDK; firebaseio + googleapis for realtime DB + auth -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://*.firebaseio.com wss://*.firebaseio.com https://*.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.firebaseio.com wss://*.firebaseio.com https://*.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com;">
 
   <!-- Preconnect to Firebase CDN and auth endpoints to reduce latency on first load -->
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
-  <link rel="dns-prefetch" href="https://firebaseio.com">
+  <link rel="preconnect" href="https://firebaseio.com" crossorigin>
 
   <link rel="stylesheet" href="style.css">
 </head>
@@ -148,7 +148,7 @@ last_modified_at: 2026-05-24
       <div class="ended-icon">✓</div>
       <h2 id="ended-title">This meeting has ended</h2>
       <p id="ended-sub">The organizer has closed this session.</p>
-      <a href="./" class="btn btn-outline" style="margin-top:1.5rem">Start a new meeting</a>
+      <a href="./" class="btn btn-outline btn-mt">Start a new meeting</a>
     </div>
   </div>
 
