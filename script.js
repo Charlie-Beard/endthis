@@ -56,9 +56,19 @@ function randomStr(chars, len) {
   return Array.from(arr, n => chars[n % chars.length]).join('');
 }
 
+async function sha256hex(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf), b => b.toString(16).padStart(2, '0')).join('');
+}
+
 function parseParams() {
-  const p = new URLSearchParams(location.search);
-  return { roomId: p.get('room'), hostToken: p.get('h') };
+  const p      = new URLSearchParams(location.search);
+  const roomId = p.get('room');
+  const VALID  = /^[A-Z2-9]{6}$/;
+  return {
+    roomId:    roomId && VALID.test(roomId) ? roomId : null,
+    hostToken: p.get('h'),
+  };
 }
 
 function participantUrl(roomId) {
@@ -102,13 +112,14 @@ function initLanding(db) {
     btn.disabled = true;
     btn.textContent = 'Creating…';
 
-    const roomId    = randomStr(ROOM_ID_CHARS, ROOM_ID_LEN);
-    const hostToken = randomStr(TOKEN_CHARS, TOKEN_LEN);
+    const roomId        = randomStr(ROOM_ID_CHARS, ROOM_ID_LEN);
+    const hostToken     = randomStr(TOKEN_CHARS, TOKEN_LEN);
+    const hostTokenHash = await sha256hex(hostToken);
 
     try {
       await set(ref(db, `rooms/${roomId}`), {
         created: Date.now(),
-        host:    hostToken,
+        host:    hostTokenHash,
         ended:   false,
       });
       location.href = `${location.pathname}?room=${roomId}&h=${hostToken}`;
@@ -122,9 +133,12 @@ function initLanding(db) {
 // ── Host view ────────────────────────────────────────────────────────────────
 
 async function initHostView(db, roomId, hostToken, uid) {
-  // Verify host token before revealing host UI
-  const hostSnap = await get(ref(db, `rooms/${roomId}/host`));
-  if (!hostSnap.exists() || hostSnap.val() !== hostToken) {
+  // Verify host token: compare SHA-256(urlToken) against stored hash
+  const [hostSnap, tokenHash] = await Promise.all([
+    get(ref(db, `rooms/${roomId}/host`)),
+    sha256hex(hostToken),
+  ]);
+  if (!hostSnap.exists() || hostSnap.val() !== tokenHash) {
     initParticipantView(db, roomId, uid);
     return;
   }
