@@ -34,7 +34,7 @@ last_modified_at: 2026-05-24
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
   <!-- CSP: gstatic for Firebase SDK; firebaseio + googleapis for realtime DB + auth -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com; style-src 'self'; img-src 'self' data:; connect-src 'self' https://www.gstatic.com https://*.firebaseio.com wss://*.firebaseio.com https://*.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com; style-src 'self'; img-src 'self' data: https://api.qrserver.com; connect-src 'self' https://www.gstatic.com https://*.firebaseio.com wss://*.firebaseio.com https://*.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com;">
 
   <!-- Preconnect to Firebase CDN and auth endpoints to reduce latency on first load -->
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
@@ -93,6 +93,8 @@ last_modified_at: 2026-05-24
             <p>Paste it into your meeting chat. Votes are anonymous.</p>
             <div class="link-display" id="share-link-full"></div>
             <button class="btn btn-primary copy-btn-main" id="copy-btn-main">Copy link</button>
+            <button class="btn btn-ghost qr-toggle-btn" id="qr-btn">Show QR code</button>
+            <div class="qr-container" id="qr-container"></div>
           </div>
           <div class="share-card-mini">
             <div class="link-display" id="share-link-mini"></div>
@@ -102,12 +104,12 @@ last_modified_at: 2026-05-24
 
         <!-- Counter section: dimmed until share is clicked, then dominant -->
         <div class="counter-section" id="counter-section">
-          <div class="counter-waiting" id="counter-waiting">Waiting for participants…</div>
+          <div class="counter-waiting" id="counter-waiting"><span class="pulse-dot"></span>Waiting for participants…</div>
           <div class="counter-live" id="counter-live">
             <div class="counter-numbers">
               <span id="vote-count">0</span><span class="of-total"> of <span id="participant-count">0</span></span>
             </div>
-            <div class="counter-descriptor">want to end this meeting</div>
+            <div class="counter-descriptor" id="counter-descriptor">want to end this meeting</div>
             <div class="progress-track">
               <div class="progress-fill" id="progress-fill"></div>
             </div>
@@ -137,6 +139,7 @@ last_modified_at: 2026-05-24
         <p class="vote-card-sub">Your vote is completely anonymous.</p>
         <button class="btn btn-primary vote-btn" id="vote-btn">I want to end this meeting</button>
         <div class="vote-confirm" id="vote-confirm">Your vote is counted.</div>
+        <div class="first-voter-msg" id="first-voter-msg">You're the first. It takes courage.</div>
         <div class="others-voted" id="others-voted"></div>
       </div>
     </div>
@@ -152,6 +155,7 @@ last_modified_at: 2026-05-24
     </div>
   </div>
 
+  <div id="confetti" aria-hidden="true"></div>
   <script type="module" src="script.js"></script>
 </body>
 </html>

@@ -423,8 +423,67 @@ body {
 
 /* ── Animations ───────────────────────────────────────────────────────── */
 
-@keyframes spin    { to { transform: rotate(360deg); } }
-@keyframes fade-up { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes spin      { to { transform: rotate(360deg); } }
+@keyframes fade-up   { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse-dot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.65); } }
+@keyframes confetti-fall { to { transform: translateY(105vh) rotate(720deg); opacity: 0; } }
+
+/* ── Pulse dot (waiting state) ────────────────────────────────────────── */
+
+.pulse-dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  background: var(--accent);
+  border-radius: 50%;
+  margin-right: 0.5rem;
+  vertical-align: middle;
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+
+/* ── Confetti ─────────────────────────────────────────────────────────── */
+
+#confetti {
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -12px;
+  border-radius: 2px;
+  animation: confetti-fall linear forwards;
+}
+
+/* ── QR code ──────────────────────────────────────────────────────────── */
+
+.qr-toggle-btn { margin-top: 0.625rem; font-size: 0.875rem; }
+
+.qr-container {
+  display: none;
+  margin-top: 1rem;
+  text-align: center;
+}
+.qr-container.visible { display: block; }
+.qr-container img {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  display: block;
+  margin: 0 auto;
+}
+
+/* ── First-voter message ──────────────────────────────────────────────── */
+
+.first-voter-msg {
+  font-size: 0.875rem;
+  color: var(--accent);
+  margin-top: 0.75rem;
+  opacity: 0;
+  transition: opacity var(--transition);
+  font-style: italic;
+}
+.first-voter-msg.visible { opacity: 1; }
 
 /* ── Responsive ───────────────────────────────────────────────────────── */
 
