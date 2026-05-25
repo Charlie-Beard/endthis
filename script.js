@@ -83,19 +83,36 @@ function showView(id) {
   VIEW_IDS.forEach(v => document.getElementById(v).classList.toggle('active', v === id));
 }
 
-function showEnded(title, sub) {
+function showEnded(title, sub, stats = null) {
   document.getElementById('ended-title').textContent = title;
   document.getElementById('ended-sub').textContent   = sub;
+
+  const summaryEl    = document.getElementById('ended-summary');
+  const copyResultEl = document.getElementById('copy-result-btn');
+
+  if (stats && stats.presenceCount > 0 && summaryEl && copyResultEl) {
+    const { voteCount, presenceCount, elapsedMins } = stats;
+    const noun   = presenceCount === 1 ? 'participant' : 'participants';
+    const minStr = elapsedMins < 1 ? 'less than a minute' : `${elapsedMins} min${elapsedMins !== 1 ? 's' : ''}`;
+    const text   = `${voteCount} of ${presenceCount} ${noun} voted to end that meeting after ${minStr}.`;
+    summaryEl.textContent = text;
+    summaryEl.classList.add('visible');
+    copyResultEl.classList.add('visible');
+    copyResultEl.addEventListener('click', () => {
+      copyToClipboard(`${text} (via endthis.online)`, copyResultEl, 'Copy result', '✓ Copied!');
+    });
+  }
+
   showView('ended-view');
 }
 
 // ── Confetti ─────────────────────────────────────────────────────────────────
 
-function launchConfetti() {
+function launchConfetti(count = 90, durationScale = 1) {
   const container = document.getElementById('confetti');
   if (!container) return;
   const colors = ['#D97757', '#F59E0B', '#86EFAC', '#93C5FD', '#FDA4AF', '#E5E1DA'];
-  for (let i = 0; i < 90; i++) {
+  for (let i = 0; i < count; i++) {
     const el  = document.createElement('div');
     el.className = 'confetti-piece';
     const size = 6 + Math.random() * 7;
@@ -103,7 +120,7 @@ function launchConfetti() {
       `left:${Math.random() * 100}%`,
       `width:${size}px`, `height:${size}px`,
       `background:${colors[Math.floor(Math.random() * colors.length)]}`,
-      `animation-duration:${1.4 + Math.random() * 1.8}s`,
+      `animation-duration:${(1.4 + Math.random() * 1.8) * durationScale}s`,
       `animation-delay:${Math.random() * 0.6}s`,
     ].join(';');
     container.appendChild(el);
@@ -170,14 +187,17 @@ function initLanding(db) {
 
 async function initHostView(db, meetingId, hostToken, uid) {
   // Verify host token: compare SHA-256(urlToken) against stored hash
-  const [hostSnap, tokenHash] = await Promise.all([
+  const [hostSnap, tokenHash, createdSnap] = await Promise.all([
     get(ref(db, `meetings/${meetingId}/host`)),
     sha256hex(hostToken),
+    get(ref(db, `meetings/${meetingId}/created`)),
   ]);
   if (!hostSnap.exists() || hostSnap.val() !== tokenHash) {
     initParticipantView(db, meetingId, uid);
     return;
   }
+
+  const meetingCreated = createdSnap.val() || Date.now();
 
   showView('host-view');
 
@@ -234,10 +254,21 @@ async function initHostView(db, meetingId, hostToken, uid) {
     }
   });
 
+  // Elapsed meeting timer
+  const elapsedEl = document.getElementById('meeting-elapsed');
+  const updateElapsed = () => {
+    const mins = Math.floor((Date.now() - meetingCreated) / 60000);
+    elapsedEl.textContent = mins < 1 ? 'Just started' : `Running for ${mins} min${mins !== 1 ? 's' : ''}`;
+  };
+  updateElapsed();
+  const elapsedInterval = setInterval(updateElapsed, 60000);
+
   // Watch for the session being closed
   onValue(ref(db, `meetings/${meetingId}/ended`), snap => {
     if (snap.val() === true) {
-      showEnded('Session closed', 'You have closed this meeting session.');
+      clearInterval(elapsedInterval);
+      const elapsedMins = Math.floor((Date.now() - meetingCreated) / 60000);
+      showEnded('Session closed', 'You have closed this meeting session.', { voteCount, presenceCount, elapsedMins });
     }
   });
 
@@ -245,6 +276,7 @@ async function initHostView(db, meetingId, hostToken, uid) {
   let presenceCount       = 0;
   let voteCount           = 0;
   let thresholdCelebrated = false;
+  let allCelebrated       = false;
 
   function renderCounter() {
     const waiting    = document.getElementById('counter-waiting');
@@ -275,8 +307,12 @@ async function initHostView(db, meetingId, hostToken, uid) {
     fill.classList.toggle('at-threshold', atThreshold);
     alert.classList.toggle('visible', atThreshold);
 
+    const allIn = presenceCount > 1 && voteCount === presenceCount;
+
     // Dynamic descriptor copy
-    if (atThreshold) {
+    if (allIn) {
+      descriptor.textContent = 'everyone is ready to go';
+    } else if (atThreshold) {
       descriptor.textContent = 'have had enough — time to go';
     } else if (ratio >= 0.34) {
       descriptor.textContent = 'are ready to wrap up';
@@ -284,15 +320,26 @@ async function initHostView(db, meetingId, hostToken, uid) {
       descriptor.textContent = 'want to end this meeting';
     }
 
+    // Alert text varies by state
+    alert.textContent = allIn
+      ? "Everyone's on the same page — wrap it up!"
+      : 'More than half your participants want to wrap up.';
+
     // Tab title badge
     document.title = `(${voteCount}/${presenceCount}) EndThis`;
 
-    // Confetti on first threshold crossing
-    if (atThreshold && voteCount > 0 && !thresholdCelebrated) {
+    // 100% all-in gets a bigger burst; 50% threshold gets the standard one
+    if (allIn && !allCelebrated) {
+      allCelebrated = true;
+      launchConfetti(150, 2);
+    } else if (atThreshold && voteCount > 0 && !thresholdCelebrated && !allIn) {
       thresholdCelebrated = true;
       launchConfetti();
     }
-    if (!atThreshold) thresholdCelebrated = false;
+    if (!atThreshold) {
+      thresholdCelebrated = false;
+      allCelebrated = false;
+    }
   }
 
   onValue(ref(db, `meetings/${meetingId}/presence`), snap => {
@@ -356,9 +403,27 @@ async function initParticipantView(db, meetingId, uid) {
   });
 
   // Show "X others feel the same" and first-voter encouragement
+  let prevOthersCount = -1;
+  let joinedTimeout   = null;
+
   onValue(ref(db, `meetings/${meetingId}/votes`), snap => {
     const allVotes    = snap.exists() ? Object.keys(snap.val()) : [];
     const othersCount = allVotes.filter(id => id !== uid).length;
+
+    // "Someone just joined you" — fires when the first other voter arrives after this user voted
+    if (hasVoted && prevOthersCount === 0 && othersCount === 1) {
+      firstVoterMsg.classList.remove('visible');
+      othersVoted.textContent = 'Someone just joined you.';
+      othersVoted.classList.add('visible');
+      clearTimeout(joinedTimeout);
+      joinedTimeout = setTimeout(() => {
+        othersVoted.textContent = '1 other person feels the same.';
+      }, 3000);
+      prevOthersCount = othersCount;
+      return;
+    }
+
+    prevOthersCount = othersCount;
 
     if (hasVoted && othersCount === 0) {
       firstVoterMsg.classList.add('visible');
@@ -372,6 +437,15 @@ async function initParticipantView(db, meetingId, uid) {
       othersVoted.classList.add('visible');
     } else {
       othersVoted.classList.remove('visible');
+    }
+  });
+
+  // Keyboard shortcut: Space or Enter toggles the vote
+  document.addEventListener('keydown', e => {
+    if ((e.key === ' ' || e.key === 'Enter') &&
+        !['BUTTON', 'INPUT', 'TEXTAREA', 'A'].includes(document.activeElement.tagName)) {
+      e.preventDefault();
+      voteBtn.click();
     }
   });
 }

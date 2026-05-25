@@ -295,6 +295,13 @@ body {
   color: var(--muted);
 }
 
+.meeting-elapsed {
+  font-size: 0.8125rem;
+  color: var(--muted);
+  margin-top: 0.625rem;
+  opacity: 0.7;
+}
+
 .progress-track {
   background: var(--bg);
   border-radius: 100px;
@@ -399,6 +406,15 @@ body {
 }
 .others-voted.visible { display: block; }
 
+.participant-footer-cta {
+  margin-top: 1.5rem;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  text-align: center;
+}
+.participant-footer-cta a { color: var(--muted); text-underline-offset: 2px; }
+.participant-footer-cta a:hover { color: var(--text); }
+
 /* ── Ended / error ────────────────────────────────────────────────────── */
 
 #ended-view { text-align: center; gap: 0; }
@@ -420,6 +436,12 @@ body {
   letter-spacing: -0.025em;
 }
 #ended-view p { font-size: 0.9375rem; color: var(--muted); }
+
+.ended-summary { display: none; font-size: 0.9375rem; color: var(--muted); }
+.ended-summary.visible { display: block; }
+
+#copy-result-btn { display: none; }
+#copy-result-btn.visible { display: inline-flex; }
 
 /* ── Animations ───────────────────────────────────────────────────────── */
 

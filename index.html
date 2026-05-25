@@ -113,6 +113,7 @@ last_modified_at: 2026-05-24
             <div class="progress-track">
               <div class="progress-fill" id="progress-fill"></div>
             </div>
+            <div class="meeting-elapsed" id="meeting-elapsed"></div>
           </div>
           <div class="threshold-alert" id="threshold-alert">
             More than half your participants want to wrap up.
@@ -142,6 +143,7 @@ last_modified_at: 2026-05-24
         <div class="first-voter-msg" id="first-voter-msg">You're the first. It takes courage.</div>
         <div class="others-voted" id="others-voted"></div>
       </div>
+      <p class="participant-footer-cta"><a href="./">Host your own meeting ↗</a></p>
     </div>
   </div>
 
@@ -151,6 +153,8 @@ last_modified_at: 2026-05-24
       <div class="ended-icon">✓</div>
       <h2 id="ended-title">This meeting has ended</h2>
       <p id="ended-sub">The organizer has closed this session.</p>
+      <p class="ended-summary" id="ended-summary"></p>
+      <button class="btn btn-ghost" id="copy-result-btn">Copy result</button>
       <a href="./" class="btn btn-outline btn-mt">Start a new meeting</a>
     </div>
   </div>
